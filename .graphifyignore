@@ -1,0 +1,10 @@
+# Kotlin/Gradle generated — not source
+.gradle/
+.kotlin/
+out/
+local.properties
+*.iml
+.cxx/
+captures/
+*.apk
+*.aab
