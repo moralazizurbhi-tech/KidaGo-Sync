@@ -10,7 +10,8 @@ namespace KidaGoSync.Tests;
 /// The daily file exchange end to end (TASK-030): this repo's real CatalogSender / ListRetriever over MTP on one side, the
 /// real KidaGo app on the PDA, driven through adb, on the other. Needs a Pixel in File transfer mode with the debug app
 /// installed and adb authorised, so it only runs when KIDAGO_E2E=1; otherwise it returns at once.
-/// It changes the phone: it replaces the app's catalog and archives its current list.
+/// It changes the phone: it replaces the app's catalog and archives its current list. The second test also wipes the
+/// app's data to start from "no catalog ever imported" (TASK-044), and re-grants all-files access through appops.
 /// </summary>
 [Trait("Category", "Device")]
 public class CrossAppExchangeTests
@@ -74,6 +75,7 @@ public class CrossAppExchangeTests
     {
         var field = Centre(Screen(), "class=\"android.widget.EditText\"");
         Adb($"shell input tap {field.X} {field.Y}");
+        Adb("shell input keyevent 123 " + string.Join(' ', Enumerable.Repeat("67", 14))); // end, then delete: a Not Found keeps its code in the field
         Adb($"shell input text {code}");
         Adb("shell input keyevent 66");
         await Task.Delay(1200);
@@ -103,7 +105,7 @@ public class CrossAppExchangeTests
         foreach (var file in new[] { older, newer })
         {
             var path = file;
-            Assert.True((await new CatalogSender(() => path, () => monitor.Status.Selected, storage).SendAsync())!.Success);
+            Assert.True((await new CatalogSender(() => path, () => monitor.Status.Selected, storage).SendAsync(_ => Task.FromResult(false)))!.Success);
         }
         var landed = Shell($"ls {Folder}");
         Assert.Contains("product-catalog-2026-10-05.txt", landed);
@@ -143,6 +145,67 @@ public class CrossAppExchangeTests
         Adb($"shell input tap {tab.X} {tab.Y}");
         await WaitFor(() => Screen().Contains("No hay productos escaneados"), "Productos to show its empty state");
 
+        Directory.Delete(temp, recursive: true);
+    }
+
+    /// <summary>The catalog normalization seam (TASK-044): desktop check and Importar, then the app's import and lookup.</summary>
+    [Fact]
+    public async Task ADirtyCatalogIsNormalizedOnTheDesktopImportedByTheAppAndAPaddedUpcIsFound()
+    {
+        if (!Enabled) return;
+
+        const string Upc = "012345678905";        // 12 digits, becomes 0012345678905
+        const string PaddedUpc = "0012345678905";
+        var monitor = new ConnectionMonitor(new MediaDevicesMtpSource());
+        monitor.Poll();
+        Assert.Equal(ConnectionState.Connected, monitor.Status.State);
+        var storage = new MediaDevicesPdaStorage();
+        var temp = Directory.CreateTempSubdirectory().FullName;
+
+        // --- A phone that has never imported a catalog: its data is wiped, so the strip must say so (C22).
+        Adb($"shell am force-stop {Package}");
+        Shell($"rm -f {Folder}/product-catalog-*");
+        Adb($"shell pm clear {Package}");
+        Adb($"shell appops set {Package} MANAGE_EXTERNAL_STORAGE allow");
+        Launch();
+        await WaitFor(() => Screen().Contains("No hay datos en el cat"), "the strip to show No Catalog");
+        Assert.DoesNotContain("Datos actualizados", Screen());
+
+        // --- The desktop checks a dirty catalog and Importar sends only the normalized lines under the original name.
+        var original = $"{KnownA}\r\n{Upc}\r\n4444\r\nX0016SA1Z7\r\n12345678901234\r\n\r\n{KnownB}\r\n";
+        var path = Path.Combine(temp, "product-catalog-2026-10-07.txt");
+        File.WriteAllText(path, original);
+        CatalogAnalysis? asked = null;
+        var sender = new CatalogSender(() => path, () => monitor.Status.Selected, storage);
+        Assert.True((await sender.SendAsync(a => { asked = a; return Task.FromResult(true); }))!.Success);
+        Assert.NotNull(asked);
+        Assert.Equal([CatalogRule.Padded, CatalogRule.Blank, CatalogRule.NonDigit, CatalogRule.TooShort, CatalogRule.TooLong], asked!.Result.Rules.Select(r => r.Rule));
+        Assert.Equal(original, File.ReadAllText(path)); // the original on the computer is untouched
+        Assert.Equal($"{KnownA}\r\n{PaddedUpc}\r\n{KnownB}\r\n", Shell($"cat {Folder}/product-catalog-2026-10-07.txt").Replace("\n", "\r\n").Replace("\r\r\n", "\r\n"));
+
+        // --- The app imports the normalized file and deletes it.
+        Adb($"shell am force-stop {Package}");
+        Launch();
+        await WaitFor(() => !Shell($"ls {Folder}").Contains("product-catalog-"), "the app to delete the catalog file");
+        await WaitFor(() => Screen().Contains("Datos actualizados"), "the status strip to show the catalog is current");
+
+        // --- The padded UPC code is found, and so are the 13-digit ones; nothing the desktop removed is in the catalog.
+        await Scan(PaddedUpc);
+        Assert.Contains("Producto encontrado", Screen());
+        await Scan(KnownB);
+        Assert.Contains("Producto encontrado", Screen());
+        await Scan("1234567890123");
+        Assert.Contains("Producto no encontrado", Screen());
+
+        // --- An empty catalog file leaves the previous catalog alone and shows Error; nothing is deleted.
+        Shell($"echo -n > {Folder}/product-catalog-2026-10-08.txt");
+        Launch();
+        await WaitFor(() => Screen().Contains("Error al sincronizar"), "the strip to show Error for the empty file");
+        Assert.Contains("product-catalog-2026-10-08.txt", Shell($"ls {Folder}"));
+        await Scan(PaddedUpc);
+        Assert.Contains("Producto encontrado", Screen()); // the previous catalog is exactly as it was
+
+        Shell($"rm -f {Folder}/product-catalog-2026-10-08.txt");
         Directory.Delete(temp, recursive: true);
     }
 }

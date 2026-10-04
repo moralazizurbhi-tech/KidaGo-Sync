@@ -36,11 +36,13 @@
         <Setter Property="Foreground" Value="White" />
         <Setter Property="Background" Value="{StaticResource AccentBrush}" />
         <Setter Property="Padding" Value="28,12" />
+        <Setter Property="BorderThickness" Value="0" /> <!-- neutral buttons set their own 1px border -->
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="Root" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{StaticResource PillRadius}" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>

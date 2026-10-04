@@ -25,7 +25,8 @@ public partial class MainWindow : Window
         var storage = new MediaDevicesPdaStorage();
         var sender = new CatalogSender(PickCatalogFile, () => _monitor.Status.Selected, storage);
         var retriever = new ListRetriever(() => _monitor.Status.Selected, storage, () => _settings.ScannedListLocation, PickSavePath, ShowPulledText);
-        _coordinator = new SyncStateCoordinator(sender.SendAsync, retriever.RetrieveAsync);
+        var checkFlow = new CatalogCheckFlow(PickCatalogFile, PickCorrectedCatalogPath);
+        _coordinator = new SyncStateCoordinator(sender.SendAsync, retriever.RetrieveAsync, checkFlow);
         _coordinator.Changed += Render;
         _monitor.Changed += status =>
         {
@@ -35,6 +36,7 @@ public partial class MainWindow : Window
 
         ImportarButton.Content = PanelText.Importar;
         ExportarButton.Content = PanelText.Exportar;
+        ComprobarButton.Content = PanelText.Comprobar;
         ConfirmTitle.Text = PanelText.ConfirmExportTitle;
         ConfirmBody.Text = PanelText.ConfirmExportBody;
         ConfirmButton.Content = PanelText.ConfirmExportConfirm;
@@ -54,6 +56,19 @@ public partial class MainWindow : Window
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
             InitialDirectory = CatalogSender.PickerFolder,
+            Filter = "Catálogo (*.txt)|*.txt|Todos los archivos|*.*", // placeholder copy, see PanelText
+        };
+        return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+    }
+
+    /// <summary>The native save dialog for the corrected catalog, in the catalog folder and proposing the original name; null when cancelled.</summary>
+    private string? PickCorrectedCatalogPath(string proposedName)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            InitialDirectory = CatalogCheckFlow.PickerFolder,
+            FileName = proposedName,
+            OverwritePrompt = true, // an overwrite happens only through the system's own confirmation (C18)
             Filter = "Catálogo (*.txt)|*.txt|Todos los archivos|*.*", // placeholder copy, see PanelText
         };
         return dialog.ShowDialog(this) == true ? dialog.FileName : null;
@@ -94,6 +109,8 @@ public partial class MainWindow : Window
 
     private async void OnImportar(object sender, RoutedEventArgs e) => await _coordinator.ImportarAsync();
 
+    private async void OnComprobar(object sender, RoutedEventArgs e) => await _coordinator.ComprobarAsync();
+
     private void OnExportar(object sender, RoutedEventArgs e) => _coordinator.RequestExportar();
 
     private async void OnConfirmExport(object sender, RoutedEventArgs e) => await _coordinator.ConfirmExportAsync();
@@ -119,7 +136,7 @@ public partial class MainWindow : Window
         var state = _coordinator.State;
         if (state != _lastState && state is SyncState.Importing or SyncState.ConfirmingExport or SyncState.Exporting) HideTxtView(); // a new action began
         _lastState = state;
-        var connected = state is SyncState.Connected or SyncState.Importing or SyncState.ConfirmingExport or SyncState.Exporting;
+        var connected = _coordinator.PdaConnected;
         Paint(StatusBadge, StatusGlyph, connected ? "SuccessBrush" : "TextBrush", connected ? "✓" : "–");
         StatusText.Text = state switch
         {
@@ -129,6 +146,19 @@ public partial class MainWindow : Window
 
         ImportarButton.IsEnabled = _coordinator.CanImportar;
         ExportarButton.IsEnabled = _coordinator.CanExportar;
+        ComprobarButton.IsEnabled = _coordinator.CanComprobar;
+        if (state == SyncState.ReviewingCheck && _coordinator.Review is { } review)
+        {
+            if (CheckCard.Visibility != Visibility.Visible)
+            {
+                if (_coordinator.ReviewFor == ReviewPurpose.Import)
+                    CheckCard.Show(review.Result, PanelText.CheckNormalizeImport, offerConfirm: !review.Result.HasNoValidLine, _coordinator.ConfirmNormalize, _coordinator.DismissReview);
+                else
+                    CheckCard.Show(review.Result, PanelText.CheckCorrect, offerConfirm: true, async () => await _coordinator.CorrectAsync(), _coordinator.DismissReview);
+            }
+            CheckCard.Visibility = Visibility.Visible;
+        }
+        else CheckCard.Visibility = Visibility.Collapsed;
         ImportarButton.Content = state == SyncState.Importing ? PanelText.Working : PanelText.Importar;
         ExportarButton.Content = state == SyncState.Exporting ? PanelText.Working : PanelText.Exportar;
         ConfirmCard.Visibility = state == SyncState.ConfirmingExport ? Visibility.Visible : Visibility.Collapsed;
@@ -140,6 +170,8 @@ public partial class MainWindow : Window
         Paint(OutcomeBadge, OutcomeGlyph, ok ? "SuccessBrush" : "AccentBrush", ok ? "✓" : "!");
         OutcomeHeading.Text = (shown.Kind, ok) switch
         {
+            (ActionKind.Comprobar, true) => PanelText.ComprobarSuccess,
+            (ActionKind.Comprobar, false) => PanelText.ComprobarFailure,
             (ActionKind.Importar, true) => PanelText.ImportarSuccess,
             (ActionKind.Importar, false) => PanelText.ImportarFailure,
             (_, true) => PanelText.ExportarSuccess,

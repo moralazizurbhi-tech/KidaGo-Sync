@@ -12,11 +12,14 @@ public class SyncStateCoordinatorTests
     private TaskCompletionSource<ActionOutcome?> _exportGate = new();
     private int _imports, _exports;
 
+    private static readonly CatalogCheckFlow NoCheck = new(() => null, _ => null);
+
     private SyncStateCoordinator Coordinator(bool connected = true)
     {
         var c = new SyncStateCoordinator(
-            () => { _imports++; return _importGate.Task; },
-            () => { _exports++; return _exportGate.Task; });
+            _ => { _imports++; return _importGate.Task; },
+            () => { _exports++; return _exportGate.Task; },
+            NoCheck);
         if (connected) c.OnConnectionChanged(Connected);
         return c;
     }
@@ -135,7 +138,7 @@ public class SyncStateCoordinatorTests
     [Fact]
     public async Task AnActionThatThrowsIsAFailureNotAStuckPanel()
     {
-        var c = new SyncStateCoordinator(() => throw new InvalidOperationException("boom"), () => Task.FromResult<ActionOutcome?>(null));
+        var c = new SyncStateCoordinator(_ => throw new InvalidOperationException("boom"), () => Task.FromResult<ActionOutcome?>(null), NoCheck);
         c.OnConnectionChanged(Connected);
         await c.ImportarAsync();
         Assert.Equal(SyncState.Connected, c.State);

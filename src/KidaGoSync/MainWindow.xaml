@@ -1,6 +1,7 @@
 <Window x:Class="KidaGoSync.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:KidaGoSync"
         Title="KidaGo Sync" Width="640" Height="720" ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen" Background="{StaticResource BackgroundBrush}">
     <!-- Fixed single-window size, no responsive variants (FEAT-005 UI Definition). -->
@@ -33,6 +34,14 @@
                 <Button x:Name="ImportarButton" Grid.Column="0" Click="OnImportar" />
                 <Button x:Name="ExportarButton" Grid.Column="2" Click="OnExportar" />
             </Grid>
+
+            <!-- Comprobar catálogo: neutral secondary action, also available with no PDA. -->
+            <Button x:Name="ComprobarButton" Click="OnComprobar" Margin="0,12,0,0"
+                    Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    Foreground="{StaticResource TextBrush}" />
+
+            <!-- The check summary; shown while Reviewing check, nothing else can start meanwhile. -->
+            <local:CheckSummaryCard x:Name="CheckCard" Visibility="Collapsed" Margin="0,16,0,0" />
 
             <!-- Exportar's confirmation: one at a time, nothing else can start while it is open. -->
             <Border x:Name="ConfirmCard" Visibility="Collapsed" Margin="0,16,0,0" Padding="20"

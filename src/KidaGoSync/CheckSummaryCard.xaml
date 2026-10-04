@@ -1,0 +1,25 @@
+<UserControl x:Class="KidaGoSync.CheckSummaryCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Catalog check summary (FEAT-005 UI): a white rounded card like Exportar's confirmation. Outcome is never colour alone: each rule has a "!" badge and a count. -->
+    <Border Padding="20" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1" CornerRadius="{StaticResource CardRadius}">
+        <StackPanel>
+            <TextBlock x:Name="TitleText" FontWeight="Bold" FontSize="16" />
+            <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" Margin="0,10,0,16">
+                <StackPanel x:Name="Body" />
+            </ScrollViewer>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition x:Name="GapColumn" Width="12" />
+                    <ColumnDefinition x:Name="CancelColumn" Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="ConfirmButton" Grid.Column="0" Click="OnConfirmClick" />
+                <Button x:Name="CancelButton" Grid.Column="2" Click="OnCancelClick"
+                        Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                        Foreground="{StaticResource TextBrush}" />
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

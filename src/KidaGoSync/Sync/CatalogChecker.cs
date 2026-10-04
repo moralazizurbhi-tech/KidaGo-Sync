@@ -27,8 +27,8 @@ public sealed record RuleSummary(CatalogRule Rule, int Count, IReadOnlyList<Line
 
 public sealed record CatalogCheckResult(IReadOnlyList<RuleSummary> Rules, string NormalizedText, int ValidLineCount)
 {
-    /// <summary>Nothing to correct: the file can be sent as it is ("Catálogo correcto").</summary>
-    public bool IsClean => Rules.Count == 0;
+    /// <summary>Nothing to correct: the file can be sent as it is ("Catálogo correcto"). A file with no line at all is never clean: the app rejects it.</summary>
+    public bool IsClean => Rules.Count == 0 && ValidLineCount > 0;
 
     /// <summary>Nothing valid would remain, so there is nothing to save or send.</summary>
     public bool HasNoValidLine => ValidLineCount == 0;
