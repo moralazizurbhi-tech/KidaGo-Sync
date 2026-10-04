@@ -5,10 +5,79 @@
         WindowStartupLocation="CenterScreen" Background="{StaticResource BackgroundBrush}">
     <!-- Fixed single-window size, no responsive variants (FEAT-005 UI Definition). -->
     <Grid Margin="32">
-        <StackPanel HorizontalAlignment="Center">
+        <StackPanel HorizontalAlignment="Center" Width="420">
             <Image Source="Assets/afede_logo.png" Height="64" RenderOptions.BitmapScalingMode="HighQuality" />
             <TextBlock Text="KidaGo Sync" FontFamily="{StaticResource BrandFont}" FontSize="36"
                        HorizontalAlignment="Center" Margin="0,12,0,0" />
+
+            <!-- Connection status: icon + colour + label, never colour alone. -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,24,0,0">
+                <Border x:Name="StatusBadge" Width="24" Height="24" CornerRadius="12" VerticalAlignment="Center">
+                    <TextBlock x:Name="StatusGlyph" Foreground="White" FontWeight="Bold" FontSize="14"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock x:Name="StatusText" FontSize="16" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- Only when several MTP devices are present. -->
+            <ComboBox x:Name="DeviceChooser" Visibility="Collapsed" Margin="0,16,0,0" Padding="16,10"
+                      FontFamily="{StaticResource UiFont}" DisplayMemberPath="Name"
+                      SelectionChanged="OnDeviceChosen" />
+
+            <Grid Margin="0,24,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="ImportarButton" Grid.Column="0" Click="OnImportar" />
+                <Button x:Name="ExportarButton" Grid.Column="2" Click="OnExportar" />
+            </Grid>
+
+            <!-- Exportar's confirmation: one at a time, nothing else can start while it is open. -->
+            <Border x:Name="ConfirmCard" Visibility="Collapsed" Margin="0,16,0,0" Padding="20"
+                    Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="{StaticResource CardRadius}">
+                <StackPanel>
+                    <TextBlock x:Name="ConfirmTitle" FontWeight="Bold" FontSize="16" />
+                    <TextBlock x:Name="ConfirmBody" TextWrapping="Wrap" Margin="0,6,0,16" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="ConfirmButton" Grid.Column="0" Click="OnConfirmExport" />
+                        <Button x:Name="DeclineButton" Grid.Column="2" Click="OnDeclineExport"
+                                Background="{StaticResource BorderBrush}" Foreground="{StaticResource TextBrush}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Outcome of the last action: icon + heading + detail, green or red. -->
+            <StackPanel x:Name="OutcomeBlock" Visibility="Collapsed" Margin="0,24,0,0" HorizontalAlignment="Center">
+                <Border x:Name="OutcomeBadge" Width="48" Height="48" CornerRadius="24" HorizontalAlignment="Center">
+                    <TextBlock x:Name="OutcomeGlyph" Foreground="White" FontWeight="Bold" FontSize="26"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock x:Name="OutcomeHeading" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" Margin="0,10,0,0" />
+                <TextBlock x:Name="OutcomeDetail" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <!-- Where Exportar reads the list on the PDA; saved when edited, empty is refused. -->
+            <TextBlock x:Name="PathLabel" FontWeight="SemiBold" Margin="0,24,0,6" />
+            <TextBox x:Name="PathBox" LostFocus="OnPathCommit" KeyDown="OnPathKeyDown" />
+
+            <!-- The pulled list as raw text; hidden until an Exportar has pulled a file. -->
+            <TextBlock x:Name="TxtLabel" Visibility="Collapsed" FontWeight="SemiBold" Margin="0,16,0,6" />
+            <Border x:Name="TxtCard" Visibility="Collapsed" Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource CardRadius}" Padding="14" Height="130">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <TextBox x:Name="TxtView" Style="{x:Null}" IsReadOnly="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="13"
+                             Padding="0" BorderThickness="0" Background="Transparent" />
+                </ScrollViewer>
+            </Border>
         </StackPanel>
     </Grid>
 </Window>
