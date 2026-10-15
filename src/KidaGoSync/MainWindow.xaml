@@ -5,6 +5,8 @@
         Title="KidaGo Sync" Width="640" Height="720" ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen" Background="{StaticResource BackgroundBrush}">
     <!-- Fixed single-window size, no responsive variants (FEAT-005 UI Definition). -->
+    <!-- The window size is fixed, so content taller than it (the check summary) scrolls instead of being cut off. -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <Grid Margin="32">
         <StackPanel HorizontalAlignment="Center" Width="420">
             <Image Source="Assets/afede_logo.png" Height="64" RenderOptions.BitmapScalingMode="HighQuality" />
@@ -89,4 +91,5 @@
             </Border>
         </StackPanel>
     </Grid>
+    </ScrollViewer>
 </Window>
