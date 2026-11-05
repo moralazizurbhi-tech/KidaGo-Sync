@@ -89,7 +89,7 @@ public class CatalogSenderTests
     [Fact]
     public async Task WhenNoValidLineRemainsNothingIsSentEvenIfTheAnswerIsYes()
     {
-        var path = Write("product-catalog-2026-10-04.txt", "bad\n4444\n");
+        var path = Write("product-catalog-2026-10-04.txt", "bad\n");
         Assert.Null(await Sender(path).SendAsync(Answer(true)));
         Assert.Empty(_storage.Sent);
         Assert.True(_asked.Single().Result.HasNoValidLine);
@@ -120,6 +120,18 @@ public class CatalogSenderTests
     {
         Assert.Null(await Sender(null).SendAsync(Answer(true)));
         Assert.Empty(_storage.Sent);
+    }
+
+    [Theory]
+    [InlineData("catalogo.txt")]
+    [InlineData("Product-Catalog-2026-10-04.txt")]
+    [InlineData("product-catalog-2026-10-04 (1).txt")]
+    [InlineData("product-catalog-2026-13-45.txt")]
+    public async Task AnUnrecognisedNameIsSentUnderTodaysDatedName(string name)
+    {
+        var sender = new CatalogSender(() => Write(name, Clean), () => Pda, _storage, () => new DateOnly(2026, 10, 24));
+        await sender.SendAsync(Answer(true));
+        Assert.Equal("product-catalog-2026-10-24.txt", Assert.Single(_storage.Sent).Name);
     }
 
     [Fact]

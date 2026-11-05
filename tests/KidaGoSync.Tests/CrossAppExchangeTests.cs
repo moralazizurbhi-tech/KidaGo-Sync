@@ -63,7 +63,7 @@ public class CrossAppExchangeTests
         return ((b[0] + b[2]) / 2, (b[1] + b[3]) / 2);
     }
 
-    private static string PhoneList() => Shell($"cat {Folder}/scanned-list.txt");
+    private static string PhoneList() => Shell($"cat {Folder}/DATOS.txt");
 
     private static void Launch()
     {
@@ -95,7 +95,7 @@ public class CrossAppExchangeTests
         // Start from a known phone: no catalog files waiting, and an empty list file so any leftover list is archived on launch.
         Adb($"shell am force-stop {Package}");
         Shell($"rm -f {Folder}/product-catalog-*");
-        Shell($"echo -n > {Folder}/scanned-list.txt");
+        Shell($"echo -n > {Folder}/DATOS.txt");
 
         // --- Importar: the desktop sends an older and a newer catalog under their dated names.
         var older = Path.Combine(temp, "product-catalog-2026-10-05.txt");
@@ -122,22 +122,25 @@ public class CrossAppExchangeTests
         await Scan(KnownB);
         await Scan(OnlyInTheOlderCatalog);
         Assert.Contains("Producto no encontrado", Screen());
-        await WaitFor(() => PhoneList() == $"{KnownA},2\n{KnownB},1\n", "the app to mirror its list into scanned-list.txt");
+        await WaitFor(() => PhoneList() == $"{KnownA},2\r\n{KnownB},1\r\n", "the app to mirror its list into DATOS.txt");
 
         // --- Exportar: the desktop pulls the list, saves it, and empties the PDA's file.
         var saved = Path.Combine(temp, "exported.txt");
         string? shown = null;
-        var retriever = new ListRetriever(() => monitor.Status.Selected, storage, () => "afede/kidago/scanned-list.txt", () => saved, t => shown = t);
+        var retriever = new ListRetriever(() => monitor.Status.Selected, storage, () => "afede/kidago/DATOS.txt", () => saved, t => shown = t);
         Assert.True((await retriever.RetrieveAsync())!.Success);
         Assert.Equal($"{KnownA},2\n{KnownB},1\n", File.ReadAllText(saved));
         Assert.Equal(File.ReadAllText(saved), shown);
-        Assert.Equal("0", Shell($"wc -c < {Folder}/scanned-list.txt").Trim());
+        Assert.Equal("0", Shell($"wc -c < {Folder}/DATOS.txt").Trim());
 
-        // --- The app notices the emptied file at its next launch/resume: archives the list, empties it, and leaves the file empty.
+        // --- The app notices the emptied file at its next launch/resume and asks; answering Vaciar archives and empties the list.
         Launch();
         await WaitFor(() => Screen().Contains("Datos actualizados"), "the app to come back");
+        await WaitFor(() => Screen().Contains("exportación de la lista"), "the app to ask whether to empty the list");
+        var vaciar = Centre(Screen(), "text=\"Vaciar\"");
+        Adb($"shell input tap {vaciar.X} {vaciar.Y}");
         await Task.Delay(2000);
-        Assert.Equal("0", Shell($"wc -c < {Folder}/scanned-list.txt").Trim()); // the mirror did not write the old list back
+        Assert.Equal("0", Shell($"wc -c < {Folder}/DATOS.txt").Trim()); // the emptied list is mirrored
         // The scan field autofocuses and its keyboard covers the tab bar (whose nodes stay in the dump); close it first.
         if (Adb("shell dumpsys input_method").Contains("mInputShown=true")) Adb("shell input keyevent 4");
         await Task.Delay(800);
@@ -172,14 +175,14 @@ public class CrossAppExchangeTests
         Assert.DoesNotContain("Datos actualizados", Screen());
 
         // --- The desktop checks a dirty catalog and Importar sends only the normalized lines under the original name.
-        var original = $"{KnownA}\r\n{Upc}\r\n4444\r\nX0016SA1Z7\r\n12345678901234\r\n\r\n{KnownB}\r\n";
+        var original = $"{KnownA}\r\n{Upc}\r\nX0016SA1Z7\r\n12345678901234\r\n\r\n{KnownB}\r\n";
         var path = Path.Combine(temp, "product-catalog-2026-10-07.txt");
         File.WriteAllText(path, original);
         CatalogAnalysis? asked = null;
         var sender = new CatalogSender(() => path, () => monitor.Status.Selected, storage);
         Assert.True((await sender.SendAsync(a => { asked = a; return Task.FromResult(true); }))!.Success);
         Assert.NotNull(asked);
-        Assert.Equal([CatalogRule.Padded, CatalogRule.Blank, CatalogRule.NonDigit, CatalogRule.TooShort, CatalogRule.TooLong], asked!.Result.Rules.Select(r => r.Rule));
+        Assert.Equal([CatalogRule.Padded, CatalogRule.Blank, CatalogRule.NonDigit, CatalogRule.TooLong], asked!.Result.Rules.Select(r => r.Rule));
         Assert.Equal(original, File.ReadAllText(path)); // the original on the computer is untouched
         Assert.Equal($"{KnownA}\r\n{PaddedUpc}\r\n{KnownB}\r\n", Shell($"cat {Folder}/product-catalog-2026-10-07.txt").Replace("\n", "\r\n").Replace("\r\r\n", "\r\n"));
 

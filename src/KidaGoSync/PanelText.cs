@@ -13,18 +13,18 @@ public static class PanelText
     public const string ChoosingDevice = "Elige cuál es la PDA";
     public const string DeviceChooserLabel = "Dispositivo";
 
-    public const string Importar = "Importar";
-    public const string Exportar = "Exportar";
+    public const string Importar = "Actualizar PDA";
+    public const string Exportar = "Descargar artículos escaneados";
     public const string Working = "En curso…";
 
-    public const string ImportarSuccess = "Catálogo enviado";
-    public const string ImportarFailure = "No se pudo enviar el catálogo";
-    public const string ExportarSuccess = "Lista exportada";
-    public const string ExportarFailure = "No se pudo exportar la lista";
+    public const string ImportarSuccess = "PDA actualizada";
+    public const string ImportarFailure = "No se pudo actualizar la PDA";
+    public const string ExportarSuccess = "Artículos descargados";
+    public const string ExportarFailure = "No se pudieron descargar los artículos";
 
-    public const string ConfirmExportTitle = "¿Exportar la lista?";
-    public const string ConfirmExportBody = "Se descargará la lista y se vaciará en la PDA.";
-    public const string ConfirmExportConfirm = "Exportar";
+    public const string ConfirmExportTitle = "¿Descargar los artículos escaneados?";
+    public const string ConfirmExportBody = "Se descargarán los artículos escaneados y se vaciará la lista en la PDA.";
+    public const string ConfirmExportConfirm = "Descargar";
     public const string ConfirmExportDecline = "Cancelar";
 
     public const string Comprobar = "Comprobar catálogo";
@@ -35,7 +35,7 @@ public static class PanelText
     public const string CheckTitle = "Resumen del catálogo";
     public const string CheckClean = "Catálogo correcto";
     public const string CheckEmpty = "El archivo no contiene ninguna línea válida";
-    public const string CheckNormalizeImport = "Normalizar e importar";
+    public const string CheckNormalizeImport = "Normalizar y actualizar PDA";
     public const string CheckCorrect = "Corregir";
     public const string CheckCancel = "Cancelar";
     public const string CheckClose = "Cerrar";
@@ -47,7 +47,6 @@ public static class PanelText
         CatalogRule.Trimmed => "Espacios sobrantes: se limpian",
         CatalogRule.Blank => "Líneas en blanco: se quitan",
         CatalogRule.NonDigit => "Contienen caracteres que no son dígitos: se quitan",
-        CatalogRule.TooShort => "Menos de 12 dígitos: se quitan",
         CatalogRule.TooLong => "Más de 13 dígitos: se quitan",
         _ => rule.ToString(),
     };
@@ -58,7 +57,7 @@ public static class PanelText
     public static string ExampleLine(LineExample example) => $"{example.LineNumber}: {example.Value}";
 
     public const string PathLabel = "Ubicación de la lista en la PDA";
-    public const string TxtViewLabel = "Lista exportada";
+    public const string TxtViewLabel = "Artículos escaneados";
     public const string EmptyListMessage = "La lista estaba vacía";
 
     /// <summary>What the read-only TXT view shows for a pulled file: its raw text, or the empty-list message when it has no lines (C11).</summary>

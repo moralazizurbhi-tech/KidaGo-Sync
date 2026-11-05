@@ -10,7 +10,7 @@ public class PanelSettingsTests
     [Fact]
     public void DefaultsToTheFolderWhereTheMobileAppWritesTheList()
     {
-        Assert.Equal("afede/kidago/scanned-list.txt", new PanelSettings(_file).ScannedListLocation);
+        Assert.Equal("afede/kidago/DATOS.txt", new PanelSettings(_file).ScannedListLocation);
     }
 
     [Fact]

@@ -90,7 +90,7 @@ public class CheckSummaryCardTests
     {
         var dir = Environment.GetEnvironmentVariable("KIDAGO_RENDER_DIR");
         if (dir is null) return;
-        var card = Card(CatalogChecker.Check("8601153100055\n012345678905\n4444\nX0016SA1Z7\n" + string.Concat(Enumerable.Repeat("12345678901234\n", 12))));
+        var card = Card(CatalogChecker.Check("8601153100055\n012345678905\nX0016SA1Z7\n" + string.Concat(Enumerable.Repeat("12345678901234\n", 12))));
         var host = new Border { Background = (Brush)Application.Current.Resources["BackgroundBrush"], Padding = new Thickness(20), Width = 460, Child = card };
         host.Measure(new Size(460, double.PositiveInfinity));
         host.Arrange(new Rect(host.DesiredSize));

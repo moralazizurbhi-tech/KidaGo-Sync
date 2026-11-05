@@ -11,7 +11,7 @@ namespace KidaGoSync.Settings;
 public sealed class PanelSettings
 {
     /// <summary>Where the mobile app writes the list, relative to the PDA's shared-storage root.</summary>
-    public const string DefaultScannedListLocation = "afede/kidago/scanned-list.txt";
+    public const string DefaultScannedListLocation = "afede/kidago/DATOS.txt";
 
     private sealed record Stored(string? ScannedListLocation);
 

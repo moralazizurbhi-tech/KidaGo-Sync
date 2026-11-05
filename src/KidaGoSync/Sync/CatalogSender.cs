@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.RegularExpressions;
 using KidaGoSync.Connection;
 
 namespace KidaGoSync.Sync;
@@ -21,7 +22,7 @@ public interface IPdaStorage
 
 /// <summary>
 /// Importar: sends a catalog file the user picks to the PDA's catalog folder (FEAT-005 TD, CatalogSender). The file is
-/// checked first (C19). A clean file is copied untouched under its dated name (C3). A file with problems is never sent
+/// checked first (C19). A clean file is copied untouched under the dated name the PDA expects (C3). A file with problems is never sent
 /// as it is: only the corrected lines, under the original name, when the user chooses to normalize; the original on the
 /// computer is never modified. Cancelling the picker or the summary is not an outcome.
 /// </summary>
@@ -36,11 +37,22 @@ public sealed class CatalogSender
     private readonly Func<string?> _pickFile;
     private readonly Func<PdaDevice?> _device;
     private readonly IPdaStorage _storage;
+    private readonly Func<DateOnly> _today;
+
+    // The PDA only imports product-catalog-yyyy-MM-dd.txt; anything else is silently ignored there.
+    private static readonly Regex PdaName = new(@"^product-catalog-\d{4}-\d{2}-\d{2}\.txt$");
+
+    /// <summary>The name the PDA recognises: a valid dated name is kept, any other becomes today's.</summary>
+    internal static string PdaFileName(string name, DateOnly today) =>
+        PdaName.IsMatch(name) && DateOnly.TryParseExact(name[16..26], "yyyy-MM-dd", out _)
+            ? name
+            : $"product-catalog-{today:yyyy-MM-dd}.txt";
 
     /// <param name="pickFile">Shows the picker and returns the chosen path, or null when cancelled.</param>
     /// <param name="device">The PDA in use, or null when there is none.</param>
-    public CatalogSender(Func<string?> pickFile, Func<PdaDevice?> device, IPdaStorage storage)
+    public CatalogSender(Func<string?> pickFile, Func<PdaDevice?> device, IPdaStorage storage, Func<DateOnly>? today = null)
     {
+        _today = today ?? (() => DateOnly.FromDateTime(DateTime.Now));
         _pickFile = pickFile;
         _device = device;
         _storage = storage;
@@ -59,7 +71,7 @@ public sealed class CatalogSender
         try
         {
             var (result, bytes) = await Task.Run(() => CatalogChecker.CheckBytes(File.ReadAllBytes(path)));
-            var name = Path.GetFileName(path);
+            var name = PdaFileName(Path.GetFileName(path), _today());
             var toSend = path;
             if (!result.IsClean)
             {

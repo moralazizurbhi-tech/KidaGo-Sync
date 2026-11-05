@@ -111,7 +111,7 @@ public class CatalogCheckFlowTests : IDisposable
     [Fact]
     public async Task WhenNoValidLineRemainsNothingIsSavedAndTheUserIsTold()
     {
-        Catalog("bad\n4444\n12345678901234\n");
+        Catalog("bad\n12345678901234\n");
         _savePath = Path.Combine(_dir, "copy.txt");
         var c = Coordinator(connected: true);
         await c.ComprobarAsync();
@@ -253,7 +253,7 @@ public class CatalogCheckFlowTests : IDisposable
     public async Task WhenNoValidLineRemainsNormalizeIsIgnoredAndOnlyCancelWorks()
     {
         var answers = new List<bool>();
-        var c = ImportingCoordinator(Analysis("bad\n4444\n"), answers);
+        var c = ImportingCoordinator(Analysis("bad\n"), answers);
         var running = c.ImportarAsync();
         c.ConfirmNormalize();
         Assert.Equal(SyncState.ReviewingCheck, c.State);

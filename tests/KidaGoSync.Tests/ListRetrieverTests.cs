@@ -45,7 +45,7 @@ public class ListRetrieverTests
         _storage = new FakeStorage(_log, () => _picked ?? "");
     }
 
-    private ListRetriever Retriever(string location = "afede/kidago/scanned-list.txt", bool hasDevice = true) =>
+    private ListRetriever Retriever(string location = "afede/kidago/DATOS.txt", bool hasDevice = true) =>
         new(() => hasDevice ? Pda : null, _storage, () => location,
             () => { _log.Add("pick"); return _picked; },
             text => { _log.Add("show"); _shown = text; });

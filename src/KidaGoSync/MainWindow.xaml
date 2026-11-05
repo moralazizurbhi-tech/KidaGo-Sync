@@ -7,7 +7,7 @@
     <!-- Fixed single-window size, no responsive variants (FEAT-005 UI Definition). -->
     <!-- The window size is fixed, so content taller than it (the check summary) scrolls instead of being cut off. -->
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <Grid Margin="32">
+    <Grid Margin="32,16,32,16">
         <StackPanel HorizontalAlignment="Center" Width="420">
             <Image Source="Assets/afede_logo.png" Height="64" RenderOptions.BitmapScalingMode="HighQuality" />
             <TextBlock Text="KidaGo Sync" FontFamily="{StaticResource BrandFont}" FontSize="36"
@@ -27,15 +27,11 @@
                       FontFamily="{StaticResource UiFont}" DisplayMemberPath="Name"
                       SelectionChanged="OnDeviceChosen" />
 
-            <Grid Margin="0,24,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Button x:Name="ImportarButton" Grid.Column="0" Click="OnImportar" />
-                <Button x:Name="ExportarButton" Grid.Column="2" Click="OnExportar" />
-            </Grid>
+            <!-- Stacked, full width: the labels ("Descargar artículos escaneados") are too long for two columns. -->
+            <StackPanel Margin="0,24,0,0">
+                <Button x:Name="ImportarButton" Click="OnImportar" />
+                <Button x:Name="ExportarButton" Click="OnExportar" Margin="0,12,0,0" />
+            </StackPanel>
 
             <!-- Comprobar catálogo: neutral secondary action, also available with no PDA. -->
             <Button x:Name="ComprobarButton" Click="OnComprobar" Margin="0,12,0,0"

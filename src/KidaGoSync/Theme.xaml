@@ -15,7 +15,7 @@
     <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
     <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
     <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
-    <SolidColorBrush x:Key="DisabledBrush" Color="{StaticResource TextColor}" Opacity="0.35" />
+    <SolidColorBrush x:Key="DisabledBrush" Color="{StaticResource TextColor}" Opacity="0.6" />
 
     <FontFamily x:Key="BrandFont">/KidaGoSync;component/Assets/#Fredoka</FontFamily>
     <FontFamily x:Key="UiFont">/KidaGoSync;component/Assets/#Manrope</FontFamily>
@@ -44,7 +44,17 @@
                     <Border x:Name="Root" Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{StaticResource PillRadius}" Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}">
+                            <!-- A text label takes the button's own colour (this style replaces the global TextBlock one, which would force dark text) and wraps instead of being cut off. -->
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                    <Setter Property="TextAlignment" Value="Center" />
+                                    <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsEnabled" Value="False">

@@ -14,8 +14,6 @@ public enum CatalogRule
     Blank,
     /// <summary>Removed: contains a character that is not an ASCII digit, whatever its length.</summary>
     NonDigit,
-    /// <summary>Removed: digits only, fewer than 12.</summary>
-    TooShort,
     /// <summary>Removed: digits only, more than 13.</summary>
     TooLong,
 }
@@ -92,12 +90,11 @@ public static class CatalogChecker
         return (result, hasBom ? [.. preamble, .. body] : body);
     }
 
-    // Null: a valid 13-digit line, kept as is. Non-digit is decided before length.
+    // Null: a valid line (13 digits, or fewer than 12 kept as is), left untouched. Non-digit is decided before length.
     private static CatalogRule? Classify(string line, string raw)
     {
         if (line.Length == 0) return CatalogRule.Blank;
         if (line.Any(c => c is < '0' or > '9')) return CatalogRule.NonDigit;
-        if (line.Length < 12) return CatalogRule.TooShort;
         if (line.Length > 13) return CatalogRule.TooLong;
         if (line.Length == 12) return CatalogRule.Padded;
         return raw.Length != line.Length ? CatalogRule.Trimmed : null;

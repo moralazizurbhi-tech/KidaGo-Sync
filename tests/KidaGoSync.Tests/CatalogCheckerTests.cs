@@ -26,12 +26,11 @@ public class CatalogCheckerTests
     }
 
     [Fact]
-    public void ShortLineIsRemovedAndCountedAsTooShort()
+    public void ShortLineIsKeptAsIs()
     {
         var r = CatalogChecker.Check("4444\n8601153100055\n");
-        Assert.Equal("8601153100055\n", r.NormalizedText);
-        Assert.Equal(1, Count(r, CatalogRule.TooShort));
-        Assert.Equal(new LineExample(1, "4444"), r.Rules.Single().Examples.Single());
+        Assert.Equal("4444\n8601153100055\n", r.NormalizedText);
+        Assert.True(r.IsClean);
     }
 
     [Fact]
@@ -53,7 +52,7 @@ public class CatalogCheckerTests
     {
         var r = CatalogChecker.Check(line + "\n");
         Assert.Equal(1, Count(r, CatalogRule.NonDigit));
-        Assert.Equal(0, Count(r, CatalogRule.TooShort) + Count(r, CatalogRule.TooLong));
+        Assert.Equal(0, Count(r, CatalogRule.TooLong));
     }
 
     [Fact]
