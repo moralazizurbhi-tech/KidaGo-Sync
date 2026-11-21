@@ -111,4 +111,77 @@ public class CatalogCheckerTests
     {
         Assert.True(CatalogChecker.Check("").HasNoValidLine);
     }
+
+    // ---- prices (FEAT-005 C22, C23)
+
+    [Fact]
+    public void PricedLinesAreKeptAsWrittenAndTheFileIsClean()
+    {
+        var text = "0000772190817;24.99\r\n8412345678901,3\r\n8412345678902;0.00\r\n8412345678903;12,50\r\n";
+        var r = CatalogChecker.Check(text);
+        Assert.True(r.IsClean);
+        Assert.Equal(text, r.NormalizedText);
+    }
+
+    [Fact]
+    public void TwelveDigitCodeWithAPriceIsPaddedAndKeepsThePrice()
+    {
+        var r = CatalogChecker.Check("012345678905;24.99\n");
+        Assert.Equal("0012345678905;24.99\n", r.NormalizedText);
+        Assert.Equal(1, Count(r, CatalogRule.Padded));
+    }
+
+    [Theory]
+    [InlineData("8412345678901;abc")]
+    [InlineData("8412345678901;")]
+    [InlineData("8412345678901;1.999")]
+    [InlineData("8412345678901;-2")]
+    [InlineData("8412345678901;2 €")]
+    public void AnInvalidPriceRemovesTheLine(string line)
+    {
+        var r = CatalogChecker.Check(line + "\n1234567890123;1.00\n");
+        Assert.Equal(1, Count(r, CatalogRule.PriceInvalid));
+        Assert.Equal("1234567890123;1.00\n", r.NormalizedText);
+    }
+
+    [Fact]
+    public void ABadCodeIsCountedUnderItsCodeRuleWhateverItsPrice()
+    {
+        var r = CatalogChecker.Check("X0016SA1Z7;19.99\n");
+        Assert.Equal(1, Count(r, CatalogRule.NonDigit));
+        Assert.Equal(0, Count(r, CatalogRule.PriceInvalid));
+    }
+
+    [Fact]
+    public void ARepeatedCodeWithAnotherPriceKeepsTheFirstLine()
+    {
+        var r = CatalogChecker.Check("0194735116294;19.99\n1111111111111;1.00\n0194735116294;22.99\n");
+        Assert.Equal(1, Count(r, CatalogRule.RepeatedCode));
+        Assert.Equal("0194735116294;19.99\n1111111111111;1.00\n", r.NormalizedText);
+        Assert.Equal(3, r.Rules.Single().Examples.Single().LineNumber);
+    }
+
+    [Fact]
+    public void AnExactRepeatIsLeftUntouched()
+    {
+        var r = CatalogChecker.Check("0192995227392;24.99\n0192995227392;24.99\n");
+        Assert.True(r.IsClean);
+        Assert.Equal(2, r.ValidLineCount);
+    }
+
+    [Fact]
+    public void SpacesAroundTheSeparatorAreCleaned()
+    {
+        var r = CatalogChecker.Check(" 8412345678901 ; 24.99 \n");
+        Assert.Equal("8412345678901;24.99\n", r.NormalizedText);
+        Assert.Equal(1, Count(r, CatalogRule.Trimmed));
+    }
+
+    [Fact]
+    public void PriceCentsIsExact()
+    {
+        Assert.Equal(181500L, CatalogChecker.PriceCents("1815.00"));
+        Assert.Equal(150L, CatalogChecker.PriceCents("1,5"));
+        Assert.Null(CatalogChecker.PriceCents("1.555"));
+    }
 }

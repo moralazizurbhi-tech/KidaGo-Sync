@@ -16,6 +16,10 @@ public enum CatalogRule
     NonDigit,
     /// <summary>Removed: digits only, more than 13.</summary>
     TooLong,
+    /// <summary>Removed: the text after the code's separator is not a price (digits with at most two decimals) (FEAT-005 C22).</summary>
+    PriceInvalid,
+    /// <summary>Removed: the code was already on an earlier line with another price; the first line prevails (FEAT-005 C23).</summary>
+    RepeatedCode,
 }
 
 public sealed record LineExample(int LineNumber, string Value);
@@ -33,8 +37,9 @@ public sealed record CatalogCheckResult(IReadOnlyList<RuleSummary> Rules, string
 }
 
 /// <summary>
-/// Classifies and normalizes a catalog file's lines (FEAT-005 TD, CatalogChecker; C17, C21). A pure function of the
-/// text, so every caller (Comprobar, the corrected copy, "Normalizar e importar") applies the same rules.
+/// Classifies and normalizes a catalog file's lines (FEAT-005 TD, CatalogChecker; C17, C21, C22, C23). A pure function
+/// of the text, so every caller (Comprobar, the corrected copy, "Normalizar e importar") applies the same rules. A line
+/// is a code, optionally followed by a price after the first `;` or `,`.
 /// </summary>
 public static class CatalogChecker
 {
@@ -49,6 +54,7 @@ public static class CatalogChecker
         var valid = 0;
         var number = 0;
         var start = 0;
+        var prices = new Dictionary<string, long?>(); // code -> price of its first kept line
         while (start < text.Length)
         {
             var end = text.IndexOfAny(['\r', '\n'], start);
@@ -56,8 +62,7 @@ public static class CatalogChecker
             var terminatorEnd = end < 0 ? text.Length : (text[end] == '\r' && end + 1 < text.Length && text[end + 1] == '\n' ? end + 2 : end + 1);
             number++;
             var raw = text[start..contentEnd];
-            var line = raw.Trim();
-            var rule = Classify(line, raw);
+            var (rule, normalized) = Classify(raw, prices);
             if (rule is not null)
             {
                 counts[rule.Value] = counts.GetValueOrDefault(rule.Value) + 1;
@@ -67,7 +72,7 @@ public static class CatalogChecker
             if (rule is null or CatalogRule.Padded or CatalogRule.Trimmed)
             {
                 valid++;
-                output.Append(rule == CatalogRule.Padded ? "0" + line : line).Append(text, contentEnd, terminatorEnd - contentEnd);
+                output.Append(normalized).Append(text, contentEnd, terminatorEnd - contentEnd);
             }
             start = terminatorEnd;
         }
@@ -90,13 +95,37 @@ public static class CatalogChecker
         return (result, hasBom ? [.. preamble, .. body] : body);
     }
 
-    // Null: a valid line (13 digits, or fewer than 12 kept as is), left untouched. Non-digit is decided before length.
-    private static CatalogRule? Classify(string line, string raw)
+    /// <summary>Digits with at most two decimals after `.` or `,`, in whole cents; null when the text is not a price.</summary>
+    public static long? PriceCents(string text)
     {
-        if (line.Length == 0) return CatalogRule.Blank;
-        if (line.Any(c => c is < '0' or > '9')) return CatalogRule.NonDigit;
-        if (line.Length > 13) return CatalogRule.TooLong;
-        if (line.Length == 12) return CatalogRule.Padded;
-        return raw.Length != line.Length ? CatalogRule.Trimmed : null;
+        var m = PriceFormat.Match(text);
+        if (!m.Success) return null;
+        return long.Parse(m.Groups[1].Value) * 100 + long.Parse(m.Groups[2].Value.PadRight(2, '0'));
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex PriceFormat = new(@"^(\d{1,9})(?:[.,](\d{1,2}))?$");
+
+    // The rule (null: a valid line left untouched) and the line as it is kept. The code is decided first (non-digit before
+    // length), then the price, then a repeat with another price; a kept line's code is remembered with its price.
+    private static (CatalogRule? Rule, string Normalized) Classify(string raw, Dictionary<string, long?> prices)
+    {
+        var line = raw.Trim();
+        if (line.Length == 0) return (CatalogRule.Blank, "");
+        var at = line.IndexOfAny([';', ',']);
+        var code = (at < 0 ? line : line[..at]).Trim();
+        var price = at < 0 ? null : line[(at + 1)..].Trim();
+        if (code.Length == 0 || code.Any(c => c is < '0' or > '9')) return (CatalogRule.NonDigit, "");
+        if (code.Length > 13) return (CatalogRule.TooLong, "");
+        long? cents = null;
+        if (price is not null && (cents = PriceCents(price)) is null) return (CatalogRule.PriceInvalid, "");
+        var padded = code.Length == 12 ? "0" + code : code;
+        if (prices.TryGetValue(padded, out var first))
+        {
+            if (first != cents) return (CatalogRule.RepeatedCode, "");
+        }
+        else prices[padded] = cents;
+        var normalized = price is null ? padded : padded + line[at] + price;
+        if (code.Length == 12) return (CatalogRule.Padded, normalized);
+        return (normalized != raw ? CatalogRule.Trimmed : null, normalized);
     }
 }

@@ -48,6 +48,8 @@ public static class PanelText
         CatalogRule.Blank => "Líneas en blanco: se quitan",
         CatalogRule.NonDigit => "Contienen caracteres que no son dígitos: se quitan",
         CatalogRule.TooLong => "Más de 13 dígitos: se quitan",
+        CatalogRule.PriceInvalid => "Precio no válido: se quitan",
+        CatalogRule.RepeatedCode => "Código repetido con otro precio: se queda el primero, se quitan los demás",
         _ => rule.ToString(),
     };
 
